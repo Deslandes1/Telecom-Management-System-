@@ -32,6 +32,7 @@ text = {
         "nav_calls": "📞 Call Logs",
         "nav_sms": "✉️ SMS Logs",
         "nav_billing": "💰 Billing",
+        "nav_analysis": "📈 Customer Activity Analysis",
         "add_customer": "➕ Add New Customer",
         "customer_name": "Customer Name",
         "customer_phone": "Phone Number",
@@ -77,6 +78,18 @@ text = {
         "download_calls": "Download Call Logs CSV",
         "download_sms": "Download SMS Logs CSV",
         "download_invoices": "Download Invoices CSV",
+        "analysis_title": "Customer Activity Analysis",
+        "analysis_select": "Select Customer",
+        "analysis_calls_made": "Calls Made",
+        "analysis_calls_received": "Calls Received",
+        "analysis_total_calls": "Total Calls",
+        "analysis_total_duration": "Total Call Duration (seconds)",
+        "analysis_avg_duration": "Average Call Duration (seconds)",
+        "analysis_sms_sent": "SMS Sent",
+        "analysis_sms_received": "SMS Received",
+        "analysis_total_sms": "Total SMS",
+        "analysis_call_history": "Call History",
+        "analysis_sms_history": "SMS History",
     },
     "fr": {
         "login_title": "🔐 Connexion au Système de Gestion Télécom",
@@ -91,6 +104,7 @@ text = {
         "nav_calls": "📞 Journaux d'appels",
         "nav_sms": "✉️ Journaux SMS",
         "nav_billing": "💰 Facturation",
+        "nav_analysis": "📈 Analyse d'activité client",
         "add_customer": "➕ Ajouter un client",
         "customer_name": "Nom du client",
         "customer_phone": "Numéro de téléphone",
@@ -136,6 +150,18 @@ text = {
         "download_calls": "Télécharger les journaux d'appels (CSV)",
         "download_sms": "Télécharger les journaux SMS (CSV)",
         "download_invoices": "Télécharger les factures (CSV)",
+        "analysis_title": "Analyse d'activité client",
+        "analysis_select": "Choisir un client",
+        "analysis_calls_made": "Appels émis",
+        "analysis_calls_received": "Appels reçus",
+        "analysis_total_calls": "Total appels",
+        "analysis_total_duration": "Durée totale (secondes)",
+        "analysis_avg_duration": "Durée moyenne (secondes)",
+        "analysis_sms_sent": "SMS envoyés",
+        "analysis_sms_received": "SMS reçus",
+        "analysis_total_sms": "Total SMS",
+        "analysis_call_history": "Historique des appels",
+        "analysis_sms_history": "Historique des SMS",
     },
     "es": {
         "login_title": "🔐 Inicio de Sesión – Sistema de Gestión Telecom",
@@ -150,6 +176,7 @@ text = {
         "nav_calls": "📞 Registros de llamadas",
         "nav_sms": "✉️ Registros SMS",
         "nav_billing": "💰 Facturación",
+        "nav_analysis": "📈 Análisis de actividad del cliente",
         "add_customer": "➕ Agregar cliente",
         "customer_name": "Nombre del cliente",
         "customer_phone": "Número de teléfono",
@@ -195,6 +222,18 @@ text = {
         "download_calls": "Descargar registros de llamadas (CSV)",
         "download_sms": "Descargar registros SMS (CSV)",
         "download_invoices": "Descargar facturas (CSV)",
+        "analysis_title": "Análisis de actividad del cliente",
+        "analysis_select": "Seleccionar cliente",
+        "analysis_calls_made": "Llamadas realizadas",
+        "analysis_calls_received": "Llamadas recibidas",
+        "analysis_total_calls": "Total llamadas",
+        "analysis_total_duration": "Duración total (segundos)",
+        "analysis_avg_duration": "Duración promedio (segundos)",
+        "analysis_sms_sent": "SMS enviados",
+        "analysis_sms_received": "SMS recibidos",
+        "analysis_total_sms": "Total SMS",
+        "analysis_call_history": "Historial de llamadas",
+        "analysis_sms_history": "Historial de SMS",
     }
 }
 
@@ -205,7 +244,6 @@ def _(key):
 if "customers" not in st.session_state:
     st.session_state.customers = {}
     st.session_state.next_customer_id = 1
-    # Demo customers
     st.session_state.customers[1] = {"name": "Jean Dupont", "phone": "50912345678", "plan": "Prepaid"}
     st.session_state.customers[2] = {"name": "Marie Celeste", "phone": "50987654321", "plan": "Postpaid"}
     st.session_state.next_customer_id = 3
@@ -278,7 +316,7 @@ st.session_state.lang = lang_options[selected_lang]
 
 page = st.sidebar.radio(
     "",
-    [_("nav_dashboard"), _("nav_customers"), _("nav_calls"), _("nav_sms"), _("nav_billing")]
+    [_("nav_dashboard"), _("nav_customers"), _("nav_calls"), _("nav_sms"), _("nav_billing"), _("nav_analysis")]
 )
 
 # ---------- SIDEBAR INFO ----------
@@ -336,7 +374,7 @@ if page == _("nav_dashboard"):
     else:
         st.info("No SMS yet.")
 
-# ---------- CUSTOMERS (with download) ----------
+# ---------- CUSTOMERS ----------
 elif page == _("nav_customers"):
     st.markdown(f"<div class='main-header'><h1>👥 {_('nav_customers')}</h1></div>", unsafe_allow_html=True)
     
@@ -354,30 +392,16 @@ elif page == _("nav_customers"):
     
     st.subheader(_("customer_list"))
     if st.session_state.customers:
-        # Build dataframe for display and download
         customers_data = []
         for cid, data in st.session_state.customers.items():
-            customers_data.append({
-                "ID": cid,
-                "Name": data["name"],
-                "Phone": data["phone"],
-                "Plan": data["plan"]
-            })
+            customers_data.append({"ID": cid, "Name": data["name"], "Phone": data["phone"], "Plan": data["plan"]})
         df_customers = pd.DataFrame(customers_data)
         st.dataframe(df_customers, use_container_width=True)
         
-        # Download button
         csv_buffer = io.StringIO()
         df_customers.to_csv(csv_buffer, index=False)
-        st.download_button(
-            label=_("download_customers"),
-            data=csv_buffer.getvalue(),
-            file_name=f"customers_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
-            key="download_customers"
-        )
+        st.download_button(label=_("download_customers"), data=csv_buffer.getvalue(), file_name=f"customers_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", key="download_customers")
         
-        # Edit/Delete inline (keep original functionality)
         for cid, data in st.session_state.customers.items():
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
@@ -398,7 +422,7 @@ elif page == _("nav_customers"):
     else:
         st.info("No customers yet.")
 
-# ---------- CALL LOGS (with download) ----------
+# ---------- CALL LOGS ----------
 elif page == _("nav_calls"):
     st.markdown(f"<div class='main-header'><h1>📞 {_('nav_calls')}</h1></div>", unsafe_allow_html=True)
     
@@ -409,42 +433,23 @@ elif page == _("nav_calls"):
             duration = st.number_input(_("call_duration"), min_value=1, step=1)
             if st.form_submit_button(_("call_add")):
                 if from_phone and to_phone:
-                    st.session_state.calls.append({
-                        "from_phone": from_phone,
-                        "to_phone": to_phone,
-                        "duration": duration,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
+                    st.session_state.calls.append({"from_phone": from_phone, "to_phone": to_phone, "duration": duration, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                     st.rerun()
     
     st.subheader(_("call_logs"))
     if st.session_state.calls:
         calls_data = []
         for call in st.session_state.calls:
-            calls_data.append({
-                "From Phone": call["from_phone"],
-                "From Name": get_customer_name(call["from_phone"]),
-                "To Phone": call["to_phone"],
-                "To Name": get_customer_name(call["to_phone"]),
-                "Duration (sec)": call["duration"],
-                "Timestamp": call["timestamp"]
-            })
+            calls_data.append({"From Phone": call["from_phone"], "From Name": get_customer_name(call["from_phone"]), "To Phone": call["to_phone"], "To Name": get_customer_name(call["to_phone"]), "Duration (sec)": call["duration"], "Timestamp": call["timestamp"]})
         df_calls = pd.DataFrame(calls_data)
         st.dataframe(df_calls, use_container_width=True)
-        
         csv_buffer = io.StringIO()
         df_calls.to_csv(csv_buffer, index=False)
-        st.download_button(
-            label=_("download_calls"),
-            data=csv_buffer.getvalue(),
-            file_name=f"call_logs_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
-            key="download_calls"
-        )
+        st.download_button(label=_("download_calls"), data=csv_buffer.getvalue(), file_name=f"call_logs_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", key="download_calls")
     else:
         st.info("No call records.")
 
-# ---------- SMS LOGS (with download) ----------
+# ---------- SMS LOGS ----------
 elif page == _("nav_sms"):
     st.markdown(f"<div class='main-header'><h1>✉️ {_('nav_sms')}</h1></div>", unsafe_allow_html=True)
     
@@ -455,42 +460,23 @@ elif page == _("nav_sms"):
             message = st.text_area(_("sms_text"))
             if st.form_submit_button(_("sms_add")):
                 if from_phone and to_phone and message:
-                    st.session_state.sms.append({
-                        "from_phone": from_phone,
-                        "to_phone": to_phone,
-                        "message": message,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
+                    st.session_state.sms.append({"from_phone": from_phone, "to_phone": to_phone, "message": message, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                     st.rerun()
     
     st.subheader(_("sms_logs"))
     if st.session_state.sms:
         sms_data = []
         for sms in st.session_state.sms:
-            sms_data.append({
-                "From Phone": sms["from_phone"],
-                "From Name": get_customer_name(sms["from_phone"]),
-                "To Phone": sms["to_phone"],
-                "To Name": get_customer_name(sms["to_phone"]),
-                "Message": sms["message"],
-                "Timestamp": sms["timestamp"]
-            })
+            sms_data.append({"From Phone": sms["from_phone"], "From Name": get_customer_name(sms["from_phone"]), "To Phone": sms["to_phone"], "To Name": get_customer_name(sms["to_phone"]), "Message": sms["message"], "Timestamp": sms["timestamp"]})
         df_sms = pd.DataFrame(sms_data)
         st.dataframe(df_sms, use_container_width=True)
-        
         csv_buffer = io.StringIO()
         df_sms.to_csv(csv_buffer, index=False)
-        st.download_button(
-            label=_("download_sms"),
-            data=csv_buffer.getvalue(),
-            file_name=f"sms_logs_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
-            key="download_sms"
-        )
+        st.download_button(label=_("download_sms"), data=csv_buffer.getvalue(), file_name=f"sms_logs_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", key="download_sms")
     else:
         st.info("No SMS records.")
 
-# ---------- BILLING (with invoice download) ----------
+# ---------- BILLING ----------
 elif page == _("nav_billing"):
     st.markdown(f"<div class='main-header'><h1>💰 {_('nav_billing')}</h1></div>", unsafe_allow_html=True)
     
@@ -506,12 +492,7 @@ elif page == _("nav_billing"):
             if st.button(_("billing_generate")):
                 existing = any(i["customer_id"] == selected_cid and i["month"] == month for i in st.session_state.invoices)
                 if not existing:
-                    st.session_state.invoices.append({
-                        "customer_id": selected_cid,
-                        "month": month,
-                        "amount": amount,
-                        "paid": False
-                    })
+                    st.session_state.invoices.append({"customer_id": selected_cid, "month": month, "amount": amount, "paid": False})
                     st.rerun()
                 else:
                     st.warning("Invoice for this month already exists.")
@@ -519,26 +500,12 @@ elif page == _("nav_billing"):
         st.subheader(_("invoice_history"))
         customer_invoices = [i for i in st.session_state.invoices if i["customer_id"] == selected_cid]
         if customer_invoices:
-            inv_data = []
-            for inv in customer_invoices:
-                inv_data.append({
-                    "Month": inv["month"],
-                    "Amount (USD)": inv["amount"],
-                    "Paid": "Yes" if inv["paid"] else "No"
-                })
+            inv_data = [{"Month": inv["month"], "Amount (USD)": inv["amount"], "Paid": "Yes" if inv["paid"] else "No"} for inv in customer_invoices]
             df_inv = pd.DataFrame(inv_data)
             st.dataframe(df_inv, use_container_width=True)
-            
-            # Download invoices for this customer
             csv_buffer = io.StringIO()
             df_inv.to_csv(csv_buffer, index=False)
-            st.download_button(
-                label=_("download_invoices"),
-                data=csv_buffer.getvalue(),
-                file_name=f"invoices_customer_{selected_cid}_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                key="download_invoices"
-            )
+            st.download_button(label=_("download_invoices"), data=csv_buffer.getvalue(), file_name=f"invoices_customer_{selected_cid}_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", key="download_invoices")
             
             unpaid = [inv for inv in customer_invoices if not inv["paid"]]
             if unpaid:
@@ -553,6 +520,85 @@ elif page == _("nav_billing"):
                         st.rerun()
         else:
             st.info("No invoices for this customer.")
+
+# ---------- CUSTOMER ACTIVITY ANALYSIS (NEW) ----------
+elif page == _("nav_analysis"):
+    st.markdown(f"<div class='main-header'><h1>📈 {_('analysis_title')}</h1></div>", unsafe_allow_html=True)
+    
+    if not st.session_state.customers:
+        st.warning("No customers. Please add customers first.")
+    else:
+        customer_options = {cid: f"{data['name']} ({data['phone']})" for cid, data in st.session_state.customers.items()}
+        selected_cid = st.selectbox(_("analysis_select"), list(customer_options.keys()), format_func=lambda x: customer_options[x])
+        customer_phone = st.session_state.customers[selected_cid]["phone"]
+        
+        # Filter calls where the customer's number appears as caller or receiver
+        calls_made = [c for c in st.session_state.calls if c["from_phone"] == customer_phone]
+        calls_received = [c for c in st.session_state.calls if c["to_phone"] == customer_phone]
+        all_calls = calls_made + calls_received
+        
+        # Filter SMS
+        sms_sent = [s for s in st.session_state.sms if s["from_phone"] == customer_phone]
+        sms_received = [s for s in st.session_state.sms if s["to_phone"] == customer_phone]
+        all_sms = sms_sent + sms_received
+        
+        # Analytics
+        total_calls = len(all_calls)
+        total_duration = sum(c["duration"] for c in all_calls) if all_calls else 0
+        avg_duration = total_duration / total_calls if total_calls > 0 else 0
+        total_sms = len(all_sms)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(_("analysis_calls_made"), len(calls_made))
+            st.metric(_("analysis_calls_received"), len(calls_received))
+        with col2:
+            st.metric(_("analysis_total_calls"), total_calls)
+            st.metric(_("analysis_total_sms"), total_sms)
+        with col3:
+            st.metric(_("analysis_total_duration"), f"{total_duration} sec")
+            st.metric(_("analysis_sms_sent"), len(sms_sent))
+        with col4:
+            st.metric(_("analysis_avg_duration"), f"{avg_duration:.1f} sec")
+            st.metric(_("analysis_sms_received"), len(sms_received))
+        
+        # Call history
+        st.subheader(_("analysis_call_history"))
+        if all_calls:
+            call_data = []
+            for call in all_calls:
+                direction = "Outgoing" if call["from_phone"] == customer_phone else "Incoming"
+                other_party = call["to_phone"] if direction == "Outgoing" else call["from_phone"]
+                call_data.append({
+                    "Direction": direction,
+                    "Other Party": other_party,
+                    "Other Party Name": get_customer_name(other_party),
+                    "Duration (sec)": call["duration"],
+                    "Timestamp": call["timestamp"]
+                })
+            df_calls_analysis = pd.DataFrame(call_data)
+            st.dataframe(df_calls_analysis, use_container_width=True)
+        else:
+            st.info("No calls for this customer.")
+        
+        # SMS history
+        st.subheader(_("analysis_sms_history"))
+        if all_sms:
+            sms_data = []
+            for sms in all_sms:
+                direction = "Sent" if sms["from_phone"] == customer_phone else "Received"
+                other_party = sms["to_phone"] if direction == "Sent" else sms["from_phone"]
+                sms_data.append({
+                    "Direction": direction,
+                    "Other Party": other_party,
+                    "Other Party Name": get_customer_name(other_party),
+                    "Message": sms["message"],
+                    "Timestamp": sms["timestamp"]
+                })
+            df_sms_analysis = pd.DataFrame(sms_data)
+            st.dataframe(df_sms_analysis, use_container_width=True)
+        else:
+            st.info("No SMS for this customer.")
 
 # ---------- FOOTER ----------
 st.markdown(f"""
