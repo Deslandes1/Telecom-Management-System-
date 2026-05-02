@@ -72,6 +72,11 @@ text = {
         "sidebar_full": "💎 Full package (one‑time): $2,499 USD",
         "sidebar_note": "Includes source code, setup, and 1 year support",
         "language_selector": "🌐 Language",
+        "download_report": "📥 Download Report (CSV)",
+        "download_customers": "Download Customers CSV",
+        "download_calls": "Download Call Logs CSV",
+        "download_sms": "Download SMS Logs CSV",
+        "download_invoices": "Download Invoices CSV",
     },
     "fr": {
         "login_title": "🔐 Connexion au Système de Gestion Télécom",
@@ -126,6 +131,11 @@ text = {
         "sidebar_full": "💎 Licence complète (unique) : 2 499 $US",
         "sidebar_note": "Code source, installation et 1 an de support inclus",
         "language_selector": "🌐 Langue",
+        "download_report": "📥 Télécharger le rapport (CSV)",
+        "download_customers": "Télécharger la liste des clients (CSV)",
+        "download_calls": "Télécharger les journaux d'appels (CSV)",
+        "download_sms": "Télécharger les journaux SMS (CSV)",
+        "download_invoices": "Télécharger les factures (CSV)",
     },
     "es": {
         "login_title": "🔐 Inicio de Sesión – Sistema de Gestión Telecom",
@@ -180,6 +190,11 @@ text = {
         "sidebar_full": "💎 Licencia completa (única): $2,499 USD",
         "sidebar_note": "Incluye código fuente, instalación y 1 año de soporte",
         "language_selector": "🌐 Idioma",
+        "download_report": "📥 Descargar informe (CSV)",
+        "download_customers": "Descargar lista de clientes (CSV)",
+        "download_calls": "Descargar registros de llamadas (CSV)",
+        "download_sms": "Descargar registros SMS (CSV)",
+        "download_invoices": "Descargar facturas (CSV)",
     }
 }
 
@@ -196,16 +211,15 @@ if "customers" not in st.session_state:
     st.session_state.next_customer_id = 3
 
 if "calls" not in st.session_state:
-    st.session_state.calls = []  # list of dict: from_phone, to_phone, duration, timestamp
-    # Demo calls
+    st.session_state.calls = []
     st.session_state.calls.append({"from_phone": "50912345678", "to_phone": "50987654321", "duration": 120, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
 if "sms" not in st.session_state:
-    st.session_state.sms = []   # list of dict: from_phone, to_phone, message, timestamp
+    st.session_state.sms = []
     st.session_state.sms.append({"from_phone": "50987654321", "to_phone": "50912345678", "message": "Hello, test SMS", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
 if "invoices" not in st.session_state:
-    st.session_state.invoices = []  # list of dict: customer_id, month, amount, paid
+    st.session_state.invoices = []
 
 # ---------- CUSTOM CSS (LIGHT BLUE BACKGROUND) ----------
 st.markdown("""
@@ -242,9 +256,6 @@ st.markdown("""
     h1, h2, h3 {
         color: #1e3c72;
     }
-    .css-1d391kg {
-        background-color: transparent;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -261,18 +272,16 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------- LOGGED IN – MAIN INTERFACE ----------
-# Language selector in sidebar
 lang_options = {"English": "en", "Français": "fr", "Español": "es"}
 selected_lang = st.sidebar.selectbox(_("language_selector"), list(lang_options.keys()))
 st.session_state.lang = lang_options[selected_lang]
 
-# Sidebar navigation
 page = st.sidebar.radio(
     "",
     [_("nav_dashboard"), _("nav_customers"), _("nav_calls"), _("nav_sms"), _("nav_billing")]
 )
 
-# ---------- SIDEBAR COMPANY, CONTACT, PRICING ----------
+# ---------- SIDEBAR INFO ----------
 st.sidebar.markdown(f"## {_('company_name')}")
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"### {_('sidebar_contact')}")
@@ -292,9 +301,8 @@ if st.sidebar.button(_("logout_button"), use_container_width=True):
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"*{_('built_by')}*")
 
-# Helper functions
 def get_customer_name(phone):
-    for sid, data in st.session_state.customers.items():
+    for _, data in st.session_state.customers.items():
         if data["phone"] == phone:
             return data["name"]
     return "Unknown"
@@ -328,7 +336,7 @@ if page == _("nav_dashboard"):
     else:
         st.info("No SMS yet.")
 
-# ---------- CUSTOMERS ----------
+# ---------- CUSTOMERS (with download) ----------
 elif page == _("nav_customers"):
     st.markdown(f"<div class='main-header'><h1>👥 {_('nav_customers')}</h1></div>", unsafe_allow_html=True)
     
@@ -346,6 +354,30 @@ elif page == _("nav_customers"):
     
     st.subheader(_("customer_list"))
     if st.session_state.customers:
+        # Build dataframe for display and download
+        customers_data = []
+        for cid, data in st.session_state.customers.items():
+            customers_data.append({
+                "ID": cid,
+                "Name": data["name"],
+                "Phone": data["phone"],
+                "Plan": data["plan"]
+            })
+        df_customers = pd.DataFrame(customers_data)
+        st.dataframe(df_customers, use_container_width=True)
+        
+        # Download button
+        csv_buffer = io.StringIO()
+        df_customers.to_csv(csv_buffer, index=False)
+        st.download_button(
+            label=_("download_customers"),
+            data=csv_buffer.getvalue(),
+            file_name=f"customers_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            key="download_customers"
+        )
+        
+        # Edit/Delete inline (keep original functionality)
         for cid, data in st.session_state.customers.items():
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
@@ -366,7 +398,7 @@ elif page == _("nav_customers"):
     else:
         st.info("No customers yet.")
 
-# ---------- CALL LOGS ----------
+# ---------- CALL LOGS (with download) ----------
 elif page == _("nav_calls"):
     st.markdown(f"<div class='main-header'><h1>📞 {_('nav_calls')}</h1></div>", unsafe_allow_html=True)
     
@@ -387,14 +419,32 @@ elif page == _("nav_calls"):
     
     st.subheader(_("call_logs"))
     if st.session_state.calls:
-        df_calls = pd.DataFrame(st.session_state.calls)
-        df_calls["From"] = df_calls["from_phone"].apply(get_customer_name)
-        df_calls["To"] = df_calls["to_phone"].apply(get_customer_name)
-        st.dataframe(df_calls[["From", "To", "duration", "timestamp"]], use_container_width=True)
+        calls_data = []
+        for call in st.session_state.calls:
+            calls_data.append({
+                "From Phone": call["from_phone"],
+                "From Name": get_customer_name(call["from_phone"]),
+                "To Phone": call["to_phone"],
+                "To Name": get_customer_name(call["to_phone"]),
+                "Duration (sec)": call["duration"],
+                "Timestamp": call["timestamp"]
+            })
+        df_calls = pd.DataFrame(calls_data)
+        st.dataframe(df_calls, use_container_width=True)
+        
+        csv_buffer = io.StringIO()
+        df_calls.to_csv(csv_buffer, index=False)
+        st.download_button(
+            label=_("download_calls"),
+            data=csv_buffer.getvalue(),
+            file_name=f"call_logs_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            key="download_calls"
+        )
     else:
         st.info("No call records.")
 
-# ---------- SMS LOGS ----------
+# ---------- SMS LOGS (with download) ----------
 elif page == _("nav_sms"):
     st.markdown(f"<div class='main-header'><h1>✉️ {_('nav_sms')}</h1></div>", unsafe_allow_html=True)
     
@@ -415,14 +465,32 @@ elif page == _("nav_sms"):
     
     st.subheader(_("sms_logs"))
     if st.session_state.sms:
-        df_sms = pd.DataFrame(st.session_state.sms)
-        df_sms["From"] = df_sms["from_phone"].apply(get_customer_name)
-        df_sms["To"] = df_sms["to_phone"].apply(get_customer_name)
-        st.dataframe(df_sms[["From", "To", "message", "timestamp"]], use_container_width=True)
+        sms_data = []
+        for sms in st.session_state.sms:
+            sms_data.append({
+                "From Phone": sms["from_phone"],
+                "From Name": get_customer_name(sms["from_phone"]),
+                "To Phone": sms["to_phone"],
+                "To Name": get_customer_name(sms["to_phone"]),
+                "Message": sms["message"],
+                "Timestamp": sms["timestamp"]
+            })
+        df_sms = pd.DataFrame(sms_data)
+        st.dataframe(df_sms, use_container_width=True)
+        
+        csv_buffer = io.StringIO()
+        df_sms.to_csv(csv_buffer, index=False)
+        st.download_button(
+            label=_("download_sms"),
+            data=csv_buffer.getvalue(),
+            file_name=f"sms_logs_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            key="download_sms"
+        )
     else:
         st.info("No SMS records.")
 
-# ---------- BILLING ----------
+# ---------- BILLING (with invoice download) ----------
 elif page == _("nav_billing"):
     st.markdown(f"<div class='main-header'><h1>💰 {_('nav_billing')}</h1></div>", unsafe_allow_html=True)
     
@@ -432,12 +500,10 @@ elif page == _("nav_billing"):
         customer_options = {cid: f"{data['name']} ({data['phone']})" for cid, data in st.session_state.customers.items()}
         selected_cid = st.selectbox(_("billing_customer"), list(customer_options.keys()), format_func=lambda x: customer_options[x])
         
-        # Generate invoice for a month
         with st.expander(_("billing_generate")):
             month = st.text_input(_("billing_month"), value=datetime.now().strftime("%Y-%m"))
             amount = st.number_input(_("billing_amount"), min_value=0.0, step=5.0, value=50.0)
             if st.button(_("billing_generate")):
-                # Check if invoice already exists for this customer and month
                 existing = any(i["customer_id"] == selected_cid and i["month"] == month for i in st.session_state.invoices)
                 if not existing:
                     st.session_state.invoices.append({
@@ -446,7 +512,6 @@ elif page == _("nav_billing"):
                         "amount": amount,
                         "paid": False
                     })
-                    st.success("Invoice generated!")
                     st.rerun()
                 else:
                     st.warning("Invoice for this month already exists.")
@@ -454,18 +519,32 @@ elif page == _("nav_billing"):
         st.subheader(_("invoice_history"))
         customer_invoices = [i for i in st.session_state.invoices if i["customer_id"] == selected_cid]
         if customer_invoices:
-            df_inv = pd.DataFrame(customer_invoices)
-            df_inv["Customer"] = df_inv["customer_id"].apply(lambda x: st.session_state.customers[x]["name"])
-            df_inv["Paid"] = df_inv["paid"].apply(lambda x: "✅ Yes" if x else "❌ No")
-            st.dataframe(df_inv[["month", "amount", "Paid"]], use_container_width=True)
+            inv_data = []
+            for inv in customer_invoices:
+                inv_data.append({
+                    "Month": inv["month"],
+                    "Amount (USD)": inv["amount"],
+                    "Paid": "Yes" if inv["paid"] else "No"
+                })
+            df_inv = pd.DataFrame(inv_data)
+            st.dataframe(df_inv, use_container_width=True)
             
-            # Mark unpaid invoices as paid
+            # Download invoices for this customer
+            csv_buffer = io.StringIO()
+            df_inv.to_csv(csv_buffer, index=False)
+            st.download_button(
+                label=_("download_invoices"),
+                data=csv_buffer.getvalue(),
+                file_name=f"invoices_customer_{selected_cid}_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                key="download_invoices"
+            )
+            
             unpaid = [inv for inv in customer_invoices if not inv["paid"]]
             if unpaid:
                 with st.form("mark_paid"):
                     inv_index = st.selectbox("Select unpaid invoice", range(len(unpaid)), format_func=lambda i: f"{unpaid[i]['month']} - ${unpaid[i]['amount']}")
                     if st.form_submit_button(_("billing_paid")):
-                        # Find the actual invoice in the main list
                         target = unpaid[inv_index]
                         for inv in st.session_state.invoices:
                             if inv["customer_id"] == target["customer_id"] and inv["month"] == target["month"]:
