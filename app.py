@@ -96,6 +96,13 @@ text = {
         "register_plan": "Plan (Prepaid/Postpaid)",
         "register_button": "Register & Analyze",
         "registration_success": "Customer registered successfully!",
+        "upload_calls": "📤 Upload Call Data (CSV/Excel)",
+        "upload_sms": "📤 Upload SMS Data (CSV/Excel)",
+        "upload_template_calls": "Download Call Template",
+        "upload_template_sms": "Download SMS Template",
+        "upload_success_calls": "Call data uploaded successfully!",
+        "upload_success_sms": "SMS data uploaded successfully!",
+        "upload_error": "Error in file format. Please use the template.",
     },
     "fr": {
         "login_title": "🔐 Connexion au Système de Gestion Télécom",
@@ -174,6 +181,13 @@ text = {
         "register_plan": "Forfait (Prepaid/Postpaid)",
         "register_button": "Enregistrer et analyser",
         "registration_success": "Client enregistré avec succès !",
+        "upload_calls": "📤 Importer des appels (CSV/Excel)",
+        "upload_sms": "📤 Importer des SMS (CSV/Excel)",
+        "upload_template_calls": "Télécharger le modèle d'appels",
+        "upload_template_sms": "Télécharger le modèle de SMS",
+        "upload_success_calls": "Données d'appels importées avec succès !",
+        "upload_success_sms": "Données SMS importées avec succès !",
+        "upload_error": "Erreur de format. Utilisez le modèle.",
     },
     "es": {
         "login_title": "🔐 Inicio de Sesión – Sistema de Gestión Telecom",
@@ -252,6 +266,13 @@ text = {
         "register_plan": "Plan (Prepaid/Postpaid)",
         "register_button": "Registrar y analizar",
         "registration_success": "Cliente registrado exitosamente",
+        "upload_calls": "📤 Subir datos de llamadas (CSV/Excel)",
+        "upload_sms": "📤 Subir datos de SMS (CSV/Excel)",
+        "upload_template_calls": "Descargar plantilla de llamadas",
+        "upload_template_sms": "Descargar plantilla de SMS",
+        "upload_success_calls": "Datos de llamadas subidos exitosamente",
+        "upload_success_sms": "Datos de SMS subidos exitosamente",
+        "upload_error": "Error en formato. Use la plantilla.",
     }
 }
 
@@ -440,10 +461,45 @@ elif page == _("nav_customers"):
     else:
         st.info("No customers yet.")
 
-# ---------- CALL LOGS ----------
+# ---------- CALL LOGS (with upload) ----------
 elif page == _("nav_calls"):
     st.markdown(f"<div class='main-header'><h1>📞 {_('nav_calls')}</h1></div>", unsafe_allow_html=True)
     
+    # Upload section
+    with st.expander(_("upload_calls")):
+        template_df = pd.DataFrame({
+            "from_phone": ["50912345678", "50987654321"],
+            "to_phone": ["50987654321", "50912345678"],
+            "duration": [120, 45],
+            "timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+        })
+        csv_template = template_df.to_csv(index=False).encode()
+        st.download_button(_("upload_template_calls"), data=csv_template, file_name="call_template.csv", mime="text/csv")
+        
+        uploaded_file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"], key="call_upload")
+        if uploaded_file:
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df_upload = pd.read_csv(uploaded_file)
+                else:
+                    df_upload = pd.read_excel(uploaded_file)
+                required_cols = ["from_phone", "to_phone", "duration", "timestamp"]
+                if all(col in df_upload.columns for col in required_cols):
+                    for _, row in df_upload.iterrows():
+                        st.session_state.calls.append({
+                            "from_phone": str(row["from_phone"]),
+                            "to_phone": str(row["to_phone"]),
+                            "duration": int(row["duration"]),
+                            "timestamp": row["timestamp"]
+                        })
+                    st.success(_("upload_success_calls"))
+                    st.rerun()
+                else:
+                    st.error(_("upload_error"))
+            except Exception as e:
+                st.error(f"Error: {e}")
+    
+    # Manual add
     with st.expander(_("call_add")):
         with st.form("add_call"):
             from_phone = st.text_input(_("call_from"))
@@ -467,10 +523,45 @@ elif page == _("nav_calls"):
     else:
         st.info("No call records.")
 
-# ---------- SMS LOGS ----------
+# ---------- SMS LOGS (with upload) ----------
 elif page == _("nav_sms"):
     st.markdown(f"<div class='main-header'><h1>✉️ {_('nav_sms')}</h1></div>", unsafe_allow_html=True)
     
+    # Upload section
+    with st.expander(_("upload_sms")):
+        template_df = pd.DataFrame({
+            "from_phone": ["50912345678", "50987654321"],
+            "to_phone": ["50987654321", "50912345678"],
+            "message": ["Hello", "Hi there"],
+            "timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+        })
+        csv_template = template_df.to_csv(index=False).encode()
+        st.download_button(_("upload_template_sms"), data=csv_template, file_name="sms_template.csv", mime="text/csv")
+        
+        uploaded_file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"], key="sms_upload")
+        if uploaded_file:
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    df_upload = pd.read_csv(uploaded_file)
+                else:
+                    df_upload = pd.read_excel(uploaded_file)
+                required_cols = ["from_phone", "to_phone", "message", "timestamp"]
+                if all(col in df_upload.columns for col in required_cols):
+                    for _, row in df_upload.iterrows():
+                        st.session_state.sms.append({
+                            "from_phone": str(row["from_phone"]),
+                            "to_phone": str(row["to_phone"]),
+                            "message": row["message"],
+                            "timestamp": row["timestamp"]
+                        })
+                    st.success(_("upload_success_sms"))
+                    st.rerun()
+                else:
+                    st.error(_("upload_error"))
+            except Exception as e:
+                st.error(f"Error: {e}")
+    
+    # Manual add
     with st.expander(_("sms_add")):
         with st.form("add_sms"):
             from_phone = st.text_input(_("sms_from"))
@@ -539,11 +630,11 @@ elif page == _("nav_billing"):
         else:
             st.info("No invoices for this customer.")
 
-# ---------- CUSTOMER ACTIVITY ANALYSIS (with registration form) ----------
+# ---------- CUSTOMER ACTIVITY ANALYSIS (with registration and upload) ----------
 elif page == _("nav_analysis"):
     st.markdown(f"<div class='main-header'><h1>📈 {_('analysis_title')}</h1></div>", unsafe_allow_html=True)
     
-    # Registration form directly on analysis page
+    # Registration form
     with st.expander(_("register_new_customer")):
         with st.form("register_customer_analysis"):
             new_phone = st.text_input(_("register_phone"))
@@ -568,7 +659,7 @@ elif page == _("nav_analysis"):
         selected_cid = st.selectbox(_("analysis_select"), list(customer_options.keys()), format_func=lambda x: customer_options[x])
         customer_phone = st.session_state.customers[selected_cid]["phone"]
         
-        # Filter calls and SMS for this phone number
+        # Filter calls and SMS
         calls_made = [c for c in st.session_state.calls if c["from_phone"] == customer_phone]
         calls_received = [c for c in st.session_state.calls if c["to_phone"] == customer_phone]
         all_calls = calls_made + calls_received
@@ -577,7 +668,6 @@ elif page == _("nav_analysis"):
         sms_received = [s for s in st.session_state.sms if s["to_phone"] == customer_phone]
         all_sms = sms_sent + sms_received
         
-        # Analytics
         total_calls = len(all_calls)
         total_duration = sum(c["duration"] for c in all_calls) if all_calls else 0
         avg_duration = total_duration / total_calls if total_calls > 0 else 0
@@ -597,7 +687,6 @@ elif page == _("nav_analysis"):
             st.metric(_("analysis_avg_duration"), f"{avg_duration:.1f} sec")
             st.metric(_("analysis_sms_received"), len(sms_received))
         
-        # Call history
         st.subheader(_("analysis_call_history"))
         if all_calls:
             call_data = []
@@ -616,7 +705,6 @@ elif page == _("nav_analysis"):
         else:
             st.info("No calls for this customer.")
         
-        # SMS history
         st.subheader(_("analysis_sms_history"))
         if all_sms:
             sms_data = []
