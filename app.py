@@ -90,6 +90,12 @@ text = {
         "analysis_total_sms": "Total SMS",
         "analysis_call_history": "Call History",
         "analysis_sms_history": "SMS History",
+        "register_new_customer": "📝 Register New Customer for Analysis",
+        "register_phone": "Phone Number",
+        "register_name": "Full Name",
+        "register_plan": "Plan (Prepaid/Postpaid)",
+        "register_button": "Register & Analyze",
+        "registration_success": "Customer registered successfully!",
     },
     "fr": {
         "login_title": "🔐 Connexion au Système de Gestion Télécom",
@@ -162,6 +168,12 @@ text = {
         "analysis_total_sms": "Total SMS",
         "analysis_call_history": "Historique des appels",
         "analysis_sms_history": "Historique des SMS",
+        "register_new_customer": "📝 Enregistrer un nouveau client pour analyse",
+        "register_phone": "Numéro de téléphone",
+        "register_name": "Nom complet",
+        "register_plan": "Forfait (Prepaid/Postpaid)",
+        "register_button": "Enregistrer et analyser",
+        "registration_success": "Client enregistré avec succès !",
     },
     "es": {
         "login_title": "🔐 Inicio de Sesión – Sistema de Gestión Telecom",
@@ -234,6 +246,12 @@ text = {
         "analysis_total_sms": "Total SMS",
         "analysis_call_history": "Historial de llamadas",
         "analysis_sms_history": "Historial de SMS",
+        "register_new_customer": "📝 Registrar nuevo cliente para análisis",
+        "register_phone": "Número de teléfono",
+        "register_name": "Nombre completo",
+        "register_plan": "Plan (Prepaid/Postpaid)",
+        "register_button": "Registrar y analizar",
+        "registration_success": "Cliente registrado exitosamente",
     }
 }
 
@@ -521,23 +539,40 @@ elif page == _("nav_billing"):
         else:
             st.info("No invoices for this customer.")
 
-# ---------- CUSTOMER ACTIVITY ANALYSIS (NEW) ----------
+# ---------- CUSTOMER ACTIVITY ANALYSIS (with registration form) ----------
 elif page == _("nav_analysis"):
     st.markdown(f"<div class='main-header'><h1>📈 {_('analysis_title')}</h1></div>", unsafe_allow_html=True)
     
+    # Registration form directly on analysis page
+    with st.expander(_("register_new_customer")):
+        with st.form("register_customer_analysis"):
+            new_phone = st.text_input(_("register_phone"))
+            new_name = st.text_input(_("register_name"))
+            new_plan = st.selectbox(_("register_plan"), ["Prepaid", "Postpaid"])
+            if st.form_submit_button(_("register_button")):
+                if new_phone and new_name:
+                    existing = any(data["phone"] == new_phone for data in st.session_state.customers.values())
+                    if not existing:
+                        new_id = st.session_state.next_customer_id
+                        st.session_state.customers[new_id] = {"name": new_name, "phone": new_phone, "plan": new_plan}
+                        st.session_state.next_customer_id += 1
+                        st.success(_("registration_success"))
+                        st.rerun()
+                    else:
+                        st.warning("Phone number already registered. Select it from the dropdown.")
+    
     if not st.session_state.customers:
-        st.warning("No customers. Please add customers first.")
+        st.warning("No customers. Please add a customer using the form above or go to the Customers page.")
     else:
         customer_options = {cid: f"{data['name']} ({data['phone']})" for cid, data in st.session_state.customers.items()}
         selected_cid = st.selectbox(_("analysis_select"), list(customer_options.keys()), format_func=lambda x: customer_options[x])
         customer_phone = st.session_state.customers[selected_cid]["phone"]
         
-        # Filter calls where the customer's number appears as caller or receiver
+        # Filter calls and SMS for this phone number
         calls_made = [c for c in st.session_state.calls if c["from_phone"] == customer_phone]
         calls_received = [c for c in st.session_state.calls if c["to_phone"] == customer_phone]
         all_calls = calls_made + calls_received
         
-        # Filter SMS
         sms_sent = [s for s in st.session_state.sms if s["from_phone"] == customer_phone]
         sms_received = [s for s in st.session_state.sms if s["to_phone"] == customer_phone]
         all_sms = sms_sent + sms_received
